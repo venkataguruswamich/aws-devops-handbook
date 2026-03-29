@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # 🚀 AWS Auto Scaling Groups (ASG) - Learning Guide
 
 *A beginner-friendly guide to understanding and creating AWS Auto Scaling Groups*
