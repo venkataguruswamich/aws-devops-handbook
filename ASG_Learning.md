@@ -2,6 +2,9 @@
 
 *A beginner-friendly guide to understanding and creating AWS Auto Scaling Groups*
 
+
+![Image](https://github.com/user-attachments/assets/1d737fca-df46-433f-a921-27148d36bd3b)
+
 ---
 
 ## 📚 Table of Contents
