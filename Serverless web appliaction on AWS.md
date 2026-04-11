@@ -248,29 +248,69 @@ This project demonstrates how to build a fully serverless web application hosted
 ```python
 import json
 import boto3
+from datetime import datetime, timedelta
 
-dynamodb = boto3.resource('dynamodb')
-table = dynamodb.Table('visitor-counter')
+dynamodb = boto3.resource('dynamodb', region_name='ap-south-0')
+table = dynamodb.Table("Mention the S3 Bucket name")
 
 def lambda_handler(event, context):
-    response = table.get_item(Key={'ID': '1'})
-    
-    if 'Item' in response:
-        views = int(response['Item']['views'])
-    else:
-        views = 0
+    try:
+        now = datetime.utcnow()
+        today_str = now.strftime('%Y-%m-%d')
+        hour_str = now.strftime('%H:00')
 
-    views += 1
+        # MAIN COUNTER
+        response = table.get_item(Key={'id': '1'})
+        current_views = int(response.get('Item', {}).get('views', 0))
+        new_views = current_views + 1
 
-    table.put_item(Item={'ID': '1', 'views': views})
+        table.put_item(Item={
+            'id': '1',
+            'views': new_views,
+            'last_updated': now.isoformat()
+        })
 
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Access-Control-Allow-Origin': '*'
-        },
-        'body': json.dumps({'views': views})
-    }
+        # DAILY
+        daily_response = table.get_item(Key={'id': f'daily_{today_str}'})
+        daily_views = int(daily_response.get('Item', {}).get('views', 0))
+
+        table.put_item(Item={
+            'id': f'daily_{today_str}',
+            'views': daily_views + 1,
+            'date': today_str
+        })
+
+        # WEEKLY
+        week_views = 0
+        for i in range(7):
+            day = (now - timedelta(days=i)).strftime('%Y-%m-%d')
+            day_response = table.get_item(Key={'id': f'daily_{day}'})
+            week_views += int(day_response.get('Item', {}).get('views', 0))
+
+        return {
+            'statusCode': 200,
+            'headers': {
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({
+                'views': new_views,
+                'today': daily_views + 1,
+                'week': week_views,
+                'peak_hour': hour_str,
+                'fun_fact': f"You're visitor #{new_views} 🎉"
+            })
+        }
+
+    except Exception as e:
+        return {
+            'statusCode': 500,
+            'headers': {
+                'Access-Control-Allow-Origin': '*'
+            },
+            'body': json.dumps({
+                'error': str(e)
+            })
+        }
 ```
 
 5. Click **Deploy**
@@ -286,33 +326,196 @@ def lambda_handler(event, context):
 ---
 
 # 🔗 Step 7: Connect Frontend
-
 ---
-
 ## 7.1 Update script.js
 
 ```javascript
-async function updateCounter() {
-    const response = await fetch("YOUR_LAMBDA_FUNCTION_URL");
-    const data = await response.json();
+const API_URL = "YOUR_LAMBDA_FUNCTION_URL"; // ⚠️ REPLACE WITH YOUR ACTUAL URL
 
-    document.getElementById("counter-number").innerText = data.views;
+function setText(id, value) {
+    const el = document.getElementById(id);
+    if (el) {
+        el.innerText = value;
+    } else {
+        console.warn("Missing element:", id);
+    }
 }
 
+async function updateCounter() {
+    try {
+        setText("status", "Loading...");
+
+        const response = await fetch(API_URL);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "API Error");
+        }
+
+        // Update UI safely
+        setText("views", data.views);
+        setText("today", data.today);
+        setText("week", data.week);
+        setText("peak", data.peak_hour);
+        setText("fun", data.fun_fact);
+
+        setText("status", "✅ Updated successfully");
+
+    } catch (error) {
+        console.error("Fetch error:", error);
+
+        setText("views", "⚠️ Error");
+        setText("status", "❌ Failed to update counter");
+    }
+}
+
+// Auto run on page load
 updateCounter();
 ```
-
 ---
 
-## 7.2 Update index.html
+## 7.2 Update style.css
 
-```html
-<div id="counter-number">Loading...</div>
+```style.css
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(135deg, #0f172a, #1e293b);
+  color: #fff;
+}
+
+.container {
+  max-width: 600px;
+  margin: 50px auto;
+  text-align: center;
+}
+
+h1 {
+  margin-bottom: 20px;
+}
+
+.card {
+  background: #111827;
+  padding: 20px;
+  border-radius: 15px;
+  margin-bottom: 20px;
+}
+
+.big-number {
+  font-size: 60px;
+  color: #f87171;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.box {
+  background: #1f2937;
+  flex: 1;
+  padding: 15px;
+  border-radius: 10px;
+}
+
+.fun-fact {
+  margin-top: 20px;
+  font-style: italic;
+}
+
+button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  border: none;
+  background: #6366f1;
+  color: white;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #4f46e5;
+}
+
+.status {
+  margin-top: 15px;
+  font-size: 14px;
+}
+
+.ok {
+  color: #22c55e;
+  margin: 0 10px;
+}
 ```
 
 ---
+---
 
-## 7.3 Upload Updated Files
+## 7.3 Upload Updated index.htmi
+
+```index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Serverless Visitor Counter</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Optional favicon (fix 403 warning) -->
+    <link rel="icon" href="favicon.ico">
+
+    <style>
+        body {
+            font-family: Arial;
+            text-align: center;
+            background: #0f172a;
+            color: white;
+        }
+        .card {
+            background: #1e293b;
+            padding: 20px;
+            margin: 20px auto;
+            width: 300px;
+            border-radius: 10px;
+        }
+        h2 {
+            font-size: 40px;
+        }
+    </style>
+</head>
+
+<body>
+
+<h1>⚡ Serverless on AWS</h1>
+<h2>Visitor Counter</h2>
+
+<div class="card">
+    <h2 id="views">--</h2>
+    <p>powered by Lambda + DynamoDB</p>
+</div>
+
+<div class="card">
+    <p>📊 Today: <span id="today">--</span></p>
+    <p>📅 This Week: <span id="week">--</span></p>
+    <p>⏰ Peak Hour: <span id="peak">--</span></p>
+</div>
+
+<div class="card">
+    <p id="fun">Loading fun fact...</p>
+</div>
+
+<p id="status">Loading...</p>
+
+<button onclick="updateCounter()">🔄 Refresh</button>
+
+<script src="script.js"></script>
+
+</body>
+</html>
+```
+---
+## 7.4 Upload Updated Files
 
 1. Go to S3
 2. Upload:
@@ -440,3 +643,6 @@ updateCounter();
 You have successfully built a **production-ready AWS serverless web application** using modern cloud architecture.
 
 ---
+## 📬 Author
+
+VenkataGuruSwami.ch
