@@ -100,7 +100,7 @@ This project demonstrates how to build a fully serverless web application hosted
 
 1. Go to **Route 53**
 2. Click **Hosted Zones → Create hosted zone**
-3. Enter domain → `gurusaidevops.com`
+3. Enter domain → `Venkataguruswamich.online`
 4. Copy **NS records**
 
 ---
@@ -120,8 +120,8 @@ This project demonstrates how to build a fully serverless web application hosted
 2. Click **Request certificate**
 3. Add:
 
-   * `gurusaidevops.com`
-   * `*.gurusaidevops.com`
+   * `Venkataguruswamich.online`
+   * `*.Venkataguruswamich.online`
 4. Select **DNS validation**
 5. Click **Request**
 
@@ -139,7 +139,7 @@ This project demonstrates how to build a fully serverless web application hosted
 1. Go to CloudFront → Distribution → **Edit**
 2. Add:
 
-   * Alternate domain (CNAME): `gurusaidevops.com`
+   * Alternate domain (CNAME): `Venkataguruswamich.online`
 3. Select SSL certificate
 4. Save
 
@@ -543,7 +543,7 @@ button:hover {
 1. Open browser
 2. Visit:
 
-   * `https://gurusaidevops.com`
+   * `https://Venkataguruswamich.online`
 3. Refresh page
 4. ✅ Visitor counter should increase
 
@@ -646,3 +646,4 @@ You have successfully built a **production-ready AWS serverless web application*
 ## 📬 Author
 
 VenkataGuruSwami.ch
+
